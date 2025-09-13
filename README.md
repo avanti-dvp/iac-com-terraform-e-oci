@@ -312,9 +312,71 @@ Vamos começar a diversão! 🥳
     meu_ip_publico   = "SEU_IP_PUBLICO/32"
     ```
 
-11. Boa! terminamos de criar todos os arquivos necessários para a criação da infraestrutura na nuvem.
+11. Agora é hora de criar o playbook do Ansible para irá provisionar a página
 
-12. Agora vamos iniciar o fluxo de trabalho do Terraform para criar a infraestrutura na nuvem:
+```yaml
+---
+- name: Configure Web Server
+  hosts: all
+  become: yes         # Necessário para instalar pacotes e gerenciar serviços
+
+  tasks:
+    - name: Ensure all packages are up to date
+      yum:
+        name: '*'
+        state: latest
+
+    - name: Install Git
+      yum:
+        name: git
+        state: present
+
+    - name: Install Nginx on Amazon Linux 2
+      command: amazon-linux-extras install -y nginx1
+      args:
+        creates: /usr/sbin/nginx
+
+    - name: Ensure Nginx service is started and enabled
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Clone website repository
+      git:
+        repo: 'https://github.com/avanti-dvp/site-exemplo-aws.git' # Pode ser o mesmo repo ou outro
+        dest: '/tmp/website'
+        clone: yes
+
+    - name: Deploy website files to Nginx document root
+      copy:
+        src: "/tmp/website/"
+        dest: "/usr/share/nginx/html/"
+        remote_src: yes # src e dest estão na mesma máquina
+        owner: root
+        group: nginx
+        mode: '0755'
+      notify:
+      - restart nginx
+
+  handlers:
+    - name: restart nginx
+      service:
+        name: nginx
+        state: restarted
+```
+
+12. Agora precisamos criar o inventário do Ansible para que ele possa acessar a instância EC2 que foi criada pelo Terraform.
+
+```bash
+touch inventory
+echo "[all]" >> inventory
+echo "ip_da_instancia_ec2 ansible_user=ec2-user ansible_ssh_private_key_file=ec2-instance-key.pem" >> inventory
+```
+
+13. Boa! terminamos de criar todos os arquivos necessários para a criação da infraestrutura na nuvem.
+
+14. Agora vamos iniciar o fluxo de trabalho do Terraform para criar a infraestrutura na nuvem:
     ```bash
     terraform init
     terraform plan
@@ -326,7 +388,16 @@ Vamos começar a diversão! 🥳
     > O comando `terraform plan` cria um plano de execução que mostra as alterações que serão feitas na infraestrutura na nuvem.
     > O comando `terraform apply` aplica as configurações definidas nos arquivos .tf e cria a infraestrutura na nuvem.
 
-12. Se tudo rodar com sucesso, você verá o IP público da instância EC2 e a URL do site provisionado, basta acessá-lo através dessa URL no seu navegador para ver o site está no ar.
+15. Agora vamos rodar o Ansible para configurar a instância da OCI:
+    ```bash
+    ansible-playbook -i inventory playbook.yml
+    ```
+
+    > [!NOTE]
+    > O comando `ansible-playbook` executa o playbook definido no arquivo playbook.yml.
+    > O parâmetro `-i` especifica o arquivo de inventário que contém as informações de acesso à instância da OCI.
+
+16. Se tudo rodar com sucesso, você verá o IP público da instância e a URL do site provisionado, basta acessá-lo através dessa URL no seu navegador para ver o site está no ar.
 
 > [!WARNING]
 > A maioria dos navegadores modernos força o redirecionamento da página para HTTPS
@@ -337,7 +408,7 @@ E ele deverá aparecer dessa forma:
 
 ![Site no Ar](docs/images/site.png)
 
-13. Para destruir a infraestrutura na nuvem, execute o comando abaixo:
+17. Para destruir a infraestrutura na nuvem, execute o comando abaixo:
     ```bash
     terraform destroy
     ```
