@@ -613,7 +613,7 @@ resource &quot;oci_core_instance&quot; &quot;web_server&quot; {
 </div></code></pre>
 <blockquote>
 <p>[!TIP]
-O arquivo <code>ec2.tf</code> é o arquivo que define a criação da instância EC2 na AWS.</p>
+O arquivo <code>main.tf</code> é o arquivo que define a criação da instância na OCI.</p>
 </blockquote>
 </li>
 <li>
@@ -637,7 +637,7 @@ output &quot;website_url&quot; {
 </div></code></pre>
 <blockquote>
 <p>[!TIP]
-O arquivo <code>outputs.tf</code> é o arquivo que define as saídas que serão exibidas após a criação da infraestrutura, nesse caso, o IP público da instância EC2.</p>
+O arquivo <code>outputs.tf</code> é o arquivo que define as saídas que serão exibidas após a criação da infraestrutura, nesse caso, o IP público da instância.</p>
 </blockquote>
 </li>
 <li>
@@ -714,10 +714,10 @@ meu_ip_publico   = &quot;SEU_IP_PUBLICO/32&quot;
         <span class="hljs-attr">name:</span> <span class="hljs-string">git</span>
         <span class="hljs-attr">state:</span> <span class="hljs-string">present</span>
 
-    <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Install</span> <span class="hljs-string">Nginx</span> <span class="hljs-string">on</span> <span class="hljs-string">Amazon</span> <span class="hljs-string">Linux</span> <span class="hljs-number">2</span>
-      <span class="hljs-attr">command:</span> <span class="hljs-string">amazon-linux-extras</span> <span class="hljs-string">install</span> <span class="hljs-string">-y</span> <span class="hljs-string">nginx1</span>
-      <span class="hljs-attr">args:</span>
-        <span class="hljs-attr">creates:</span> <span class="hljs-string">/usr/sbin/nginx</span>
+    <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Install</span> <span class="hljs-string">Nginx</span>
+      <span class="hljs-attr">yum:</span>
+        <span class="hljs-attr">name:</span> <span class="hljs-string">'nginx'</span>
+        <span class="hljs-attr">state:</span> <span class="hljs-string">latest</span>
 
     <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Ensure</span> <span class="hljs-string">Nginx</span> <span class="hljs-string">service</span> <span class="hljs-string">is</span> <span class="hljs-string">started</span> <span class="hljs-string">and</span> <span class="hljs-string">enabled</span>
       <span class="hljs-attr">service:</span>
@@ -749,11 +749,11 @@ meu_ip_publico   = &quot;SEU_IP_PUBLICO/32&quot;
         <span class="hljs-attr">state:</span> <span class="hljs-string">restarted</span>
 </div></code></pre>
 <ol start="12">
-<li>Agora precisamos criar o inventário do Ansible para que ele possa acessar a instância EC2 que foi criada pelo Terraform.</li>
+<li>Agora precisamos criar o inventário do Ansible para que ele possa acessar a instância que foi criada pelo Terraform.</li>
 </ol>
 <pre class="hljs"><code><div>touch inventory
 <span class="hljs-built_in">echo</span> <span class="hljs-string">"[all]"</span> &gt;&gt; inventory
-<span class="hljs-built_in">echo</span> <span class="hljs-string">"ip_da_instancia_ec2 ansible_user=ec2-user ansible_ssh_private_key_file=ec2-instance-key.pem"</span> &gt;&gt; inventory
+<span class="hljs-built_in">echo</span> <span class="hljs-string">"ip_da_instancia ansible_user=opc ansible_ssh_private_key_file=/caminho/para/sua/chave_privada.pem"</span> &gt;&gt; inventory
 </div></code></pre>
 <ol start="13">
 <li>

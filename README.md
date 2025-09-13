@@ -233,7 +233,7 @@ Vamos começar a diversão! 🥳
     ```
 
     > [!TIP]
-    > O arquivo `ec2.tf` é o arquivo que define a criação da instância EC2 na AWS.
+    > O arquivo `main.tf` é o arquivo que define a criação da instância na OCI.
 
 7. Agora vamos criar o arquivo `outputs.tf`, incluindo esse trecho abaixo nele:
     ```hcl
@@ -256,7 +256,7 @@ Vamos começar a diversão! 🥳
     ```
 
     > [!TIP]
-    > O arquivo `outputs.tf` é o arquivo que define as saídas que serão exibidas após a criação da infraestrutura, nesse caso, o IP público da instância EC2.
+    > O arquivo `outputs.tf` é o arquivo que define as saídas que serão exibidas após a criação da infraestrutura, nesse caso, o IP público da instância.
 
 9. Agora vamos criar o arquivo `variables.tf`, incluindo esse trecho abaixo nele:
     ```hcl
@@ -331,10 +331,10 @@ Vamos começar a diversão! 🥳
         name: git
         state: present
 
-    - name: Install Nginx on Amazon Linux 2
-      command: amazon-linux-extras install -y nginx1
-      args:
-        creates: /usr/sbin/nginx
+    - name: Install Nginx
+      yum:
+        name: 'nginx'
+        state: latest
 
     - name: Ensure Nginx service is started and enabled
       service:
@@ -366,12 +366,12 @@ Vamos começar a diversão! 🥳
         state: restarted
 ```
 
-12. Agora precisamos criar o inventário do Ansible para que ele possa acessar a instância EC2 que foi criada pelo Terraform.
+12. Agora precisamos criar o inventário do Ansible para que ele possa acessar a instância que foi criada pelo Terraform.
 
 ```bash
 touch inventory
 echo "[all]" >> inventory
-echo "ip_da_instancia_ec2 ansible_user=ec2-user ansible_ssh_private_key_file=ec2-instance-key.pem" >> inventory
+echo "ip_da_instancia ansible_user=opc ansible_ssh_private_key_file=/caminho/para/sua/chave_privada.pem" >> inventory
 ```
 
 13. Boa! terminamos de criar todos os arquivos necessários para a criação da infraestrutura na nuvem.
