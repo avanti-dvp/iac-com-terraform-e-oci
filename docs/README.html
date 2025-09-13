@@ -695,6 +695,68 @@ meu_ip_publico   = &quot;SEU_IP_PUBLICO/32&quot;
 </div></code></pre>
 </li>
 <li>
+<p>Agora é hora de criar o playbook do Ansible para irá provisionar a página</p>
+</li>
+</ol>
+<pre class="hljs"><code><div><span class="hljs-meta">---</span>
+<span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Configure</span> <span class="hljs-string">Web</span> <span class="hljs-string">Server</span>
+  <span class="hljs-attr">hosts:</span> <span class="hljs-string">all</span>
+  <span class="hljs-attr">become:</span> <span class="hljs-literal">yes</span>         <span class="hljs-comment"># Necessário para instalar pacotes e gerenciar serviços</span>
+
+  <span class="hljs-attr">tasks:</span>
+    <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Ensure</span> <span class="hljs-string">all</span> <span class="hljs-string">packages</span> <span class="hljs-string">are</span> <span class="hljs-string">up</span> <span class="hljs-string">to</span> <span class="hljs-string">date</span>
+      <span class="hljs-attr">yum:</span>
+        <span class="hljs-attr">name:</span> <span class="hljs-string">'*'</span>
+        <span class="hljs-attr">state:</span> <span class="hljs-string">latest</span>
+
+    <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Install</span> <span class="hljs-string">Git</span>
+      <span class="hljs-attr">yum:</span>
+        <span class="hljs-attr">name:</span> <span class="hljs-string">git</span>
+        <span class="hljs-attr">state:</span> <span class="hljs-string">present</span>
+
+    <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Install</span> <span class="hljs-string">Nginx</span> <span class="hljs-string">on</span> <span class="hljs-string">Amazon</span> <span class="hljs-string">Linux</span> <span class="hljs-number">2</span>
+      <span class="hljs-attr">command:</span> <span class="hljs-string">amazon-linux-extras</span> <span class="hljs-string">install</span> <span class="hljs-string">-y</span> <span class="hljs-string">nginx1</span>
+      <span class="hljs-attr">args:</span>
+        <span class="hljs-attr">creates:</span> <span class="hljs-string">/usr/sbin/nginx</span>
+
+    <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Ensure</span> <span class="hljs-string">Nginx</span> <span class="hljs-string">service</span> <span class="hljs-string">is</span> <span class="hljs-string">started</span> <span class="hljs-string">and</span> <span class="hljs-string">enabled</span>
+      <span class="hljs-attr">service:</span>
+        <span class="hljs-attr">name:</span> <span class="hljs-string">nginx</span>
+        <span class="hljs-attr">state:</span> <span class="hljs-string">started</span>
+        <span class="hljs-attr">enabled:</span> <span class="hljs-literal">yes</span>
+
+    <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Clone</span> <span class="hljs-string">website</span> <span class="hljs-string">repository</span>
+      <span class="hljs-attr">git:</span>
+        <span class="hljs-attr">repo:</span> <span class="hljs-string">'https://github.com/avanti-dvp/site-exemplo-aws.git'</span> <span class="hljs-comment"># Pode ser o mesmo repo ou outro</span>
+        <span class="hljs-attr">dest:</span> <span class="hljs-string">'/tmp/website'</span>
+        <span class="hljs-attr">clone:</span> <span class="hljs-literal">yes</span>
+
+    <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Deploy</span> <span class="hljs-string">website</span> <span class="hljs-string">files</span> <span class="hljs-string">to</span> <span class="hljs-string">Nginx</span> <span class="hljs-string">document</span> <span class="hljs-string">root</span>
+      <span class="hljs-attr">copy:</span>
+        <span class="hljs-attr">src:</span> <span class="hljs-string">"/tmp/website/"</span>
+        <span class="hljs-attr">dest:</span> <span class="hljs-string">"/usr/share/nginx/html/"</span>
+        <span class="hljs-attr">remote_src:</span> <span class="hljs-literal">yes</span> <span class="hljs-comment"># src e dest estão na mesma máquina</span>
+        <span class="hljs-attr">owner:</span> <span class="hljs-string">root</span>
+        <span class="hljs-attr">group:</span> <span class="hljs-string">nginx</span>
+        <span class="hljs-attr">mode:</span> <span class="hljs-string">'0755'</span>
+      <span class="hljs-attr">notify:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-string">restart</span> <span class="hljs-string">nginx</span>
+
+  <span class="hljs-attr">handlers:</span>
+    <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">restart</span> <span class="hljs-string">nginx</span>
+      <span class="hljs-attr">service:</span>
+        <span class="hljs-attr">name:</span> <span class="hljs-string">nginx</span>
+        <span class="hljs-attr">state:</span> <span class="hljs-string">restarted</span>
+</div></code></pre>
+<ol start="12">
+<li>Agora precisamos criar o inventário do Ansible para que ele possa acessar a instância EC2 que foi criada pelo Terraform.</li>
+</ol>
+<pre class="hljs"><code><div>touch inventory
+<span class="hljs-built_in">echo</span> <span class="hljs-string">"[all]"</span> &gt;&gt; inventory
+<span class="hljs-built_in">echo</span> <span class="hljs-string">"ip_da_instancia_ec2 ansible_user=ec2-user ansible_ssh_private_key_file=ec2-instance-key.pem"</span> &gt;&gt; inventory
+</div></code></pre>
+<ol start="13">
+<li>
 <p>Boa! terminamos de criar todos os arquivos necessários para a criação da infraestrutura na nuvem.</p>
 </li>
 <li>
@@ -711,7 +773,17 @@ O comando <code>terraform apply</code> aplica as configurações definidas nos a
 </blockquote>
 </li>
 <li>
-<p>Se tudo rodar com sucesso, você verá o IP público da instância EC2 e a URL do site provisionado, basta acessá-lo através dessa URL no seu navegador para ver o site está no ar.</p>
+<p>Agora vamos rodar o Ansible para configurar a instância da OCI:</p>
+<pre class="hljs"><code><div>ansible-playbook -i inventory playbook.yml
+</div></code></pre>
+<blockquote>
+<p>[!NOTE]
+O comando <code>ansible-playbook</code> executa o playbook definido no arquivo playbook.yml.
+O parâmetro <code>-i</code> especifica o arquivo de inventário que contém as informações de acesso à instância da OCI.</p>
+</blockquote>
+</li>
+<li>
+<p>Se tudo rodar com sucesso, você verá o IP público da instância e a URL do site provisionado, basta acessá-lo através dessa URL no seu navegador para ver o site está no ar.</p>
 </li>
 </ol>
 <blockquote>
@@ -722,7 +794,7 @@ Portanto, para ver o site funcionando, você precisa adicionar o http:// no come
 </blockquote>
 <p>E ele deverá aparecer dessa forma:</p>
 <p><img src="docs/images/site.png" alt="Site no Ar"></p>
-<ol start="13">
+<ol start="17">
 <li>
 <p>Para destruir a infraestrutura na nuvem, execute o comando abaixo:</p>
 <pre class="hljs"><code><div>terraform destroy
